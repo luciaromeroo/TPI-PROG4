@@ -6,4 +6,8 @@ public class Habitacion
     public TipoHabitacion Tipo { get; set; }
     public decimal Precio { get; set; }
     public bool Estado { get; set; }
+    public int Capacidad { get; set; }
 }
+
+
+//Relaciones Definir. Metodos 
