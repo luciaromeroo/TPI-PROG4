@@ -6,33 +6,33 @@ using Infrastructure.Data;
 using Domain;
 
 
-namespace Client.Controllers;
+namespace User.Controllers;
 
 
 [ApiController]
 
 [Route("[controller]")]
-public class ClientController : ControllerBase
+public class UserController : ControllerBase
 {
     private IUserRepository _UserRepository;
 
-        public ClientController(IUserRepository CRepository)
+        public UserController(IUserRepository UserRepository)
     {
-        _UserRepository = CRepository;
+        _UserRepository = UserRepository;
     }
 
     
     [HttpPost]
-    public ActionResult<UserDto> Post([FromBody] PostUserRequest prPostClientRequest)
+    public ActionResult<UserDto> Post([FromBody] PostUserRequest prPostUserRequest)
     {
 
-        var entity = new User(
-            prPostClientRequest.Id,
-            prPostClientRequest.Nombre,
-            prPostClientRequest.Apellido,
-            prPostClientRequest.Dni,
-            prPostClientRequest.Mail,
-            prPostClientRequest.Telefono
+        var entity = new Domain.User(
+            prPostUserRequest.Id,
+            prPostUserRequest.Nombre,
+            prPostUserRequest.Apellido,
+            prPostUserRequest.Dni,
+            prPostUserRequest.Mail,
+            prPostUserRequest.Telefono
         );
 
         var result = _UserRepository.Add(entity);
