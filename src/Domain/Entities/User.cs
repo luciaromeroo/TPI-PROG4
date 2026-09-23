@@ -1,6 +1,6 @@
 ﻿namespace Domain;
 
-public class Cliente
+public class User
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
@@ -9,7 +9,7 @@ public class Cliente
     public string Mail { get; set; } = string.Empty;
     public string Telefono { get; set; } = string.Empty;
 
-    public Cliente(int id, string nombre, string apellido, string dni, string mail, string telefono)
+    public User(int id, string nombre, string apellido, string dni, string mail, string telefono)
     {
         Id = id;
         Nombre = nombre;

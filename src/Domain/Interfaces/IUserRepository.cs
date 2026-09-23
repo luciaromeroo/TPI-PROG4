@@ -4,21 +4,21 @@ namespace Domain.Interfaces;
 
 // Una interfaz define un contrato: indica qué operaciones debe ofrecer un
 // repositorio, pero no explica cómo se implementa cada operación.
-public interface IClientRepository
+public interface IUserRepository
 {
     
-    Cliente GetById(int id);
+    User GetById(int id);
 
 
-    List<Cliente> List();
+    List<User> List();
 
   
-    Cliente Add(Cliente entity);
+    User Add(User entity);
 
    
-    void Update(Cliente entity);
+    void Update(User entity);
 
 
-    void Delete(Cliente entity);
+    void Delete(User entity);
 }
 

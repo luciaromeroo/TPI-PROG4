@@ -1,6 +1,6 @@
 namespace Application.Models;
 
-public record PostClientRequest(
+public record PostUserRequest(
     int Id,
     string Nombre,
     string Apellido,
