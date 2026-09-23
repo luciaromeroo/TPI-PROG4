@@ -1,45 +1,54 @@
-﻿using Domain.Interfaces;
-using Domain;
+﻿using Domain;
+using Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Data;
 
 public class UserRepositoryEF : IUserRepository
 {
-    private static List<User> _clients = [];
+    private readonly ApplicationContext _context;
+
+    public UserRepositoryEF(ApplicationContext context)
+    {
+        _context = context;
+    }
 
     public User GetById(int id)
     {
-        return _clients.FirstOrDefault(client => client.Id == id)
-            ?? throw new KeyNotFoundException($"Client with id {id} not found.");
+        return _context.Users.FirstOrDefault(user => user.Id == id)
+            ?? throw new KeyNotFoundException($"User with id {id} not found.");
     }
 
     public List<User> List()
     {
-        return _clients;
+        return _context.Users.ToList();
     }
 
     public User Add(User entity)
     {
-        _clients.Add(entity);
+        _context.Users.Add(entity);
+        _context.SaveChanges();
         return entity;
     }
 
     public void Update(User entity)
     {
-        var index = _clients.FindIndex(client => client.Id == entity.Id);
-        if (index >= 0)
+        if (!_context.Users.Any(user => user.Id == entity.Id))
         {
-            _clients[index] = entity;
+            throw new KeyNotFoundException($"User with id {entity.Id} not found.");
         }
-        else
-        {
-            throw new KeyNotFoundException($"Client with id {entity.Id} not found.");
-        }
+
+        _context.Users.Update(entity);
+        _context.SaveChanges();
     }
 
     public void Delete(User entity)
     {
-          _clients.RemoveAll(client => client.Id == entity.Id);
+        var user = _context.Users.Find(entity.Id)
+            ?? throw new KeyNotFoundException($"User with id {entity.Id} not found.");
+
+        _context.Users.Remove(user);
+        _context.SaveChanges();
     }
 
 }
