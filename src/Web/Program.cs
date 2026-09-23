@@ -1,6 +1,8 @@
 using Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 
 
@@ -13,6 +15,18 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
+// Configure the SQLite connection
+var connection = new SqliteConnection("Data Source=hotelDataBase.db");
+connection.Open();
+
+// Set journal mode to DELETE using PRAGMA statement
+using (var command = connection.CreateCommand())
+{
+    command.CommandText = "PRAGMA journal_mode = DELETE;";
+    command.ExecuteNonQuery();
+}
+
+builder.Services.AddDbContext<ApplicationContext>(dbContextOptions => dbContextOptions.UseSqlite(connection));
 
 var app = builder.Build();
 
@@ -25,6 +39,8 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/openapi/v1.json", "My API V1");
     });
 }
+
+
 
 app.UseHttpsRedirection();
 
