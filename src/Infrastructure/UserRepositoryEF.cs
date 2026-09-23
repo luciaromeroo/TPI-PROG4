@@ -3,28 +3,28 @@ using Domain;
 
 namespace Infrastructure.Data;
 
-public class ClientRepositoryEF : IClientRepository
+public class UserRepositoryEF : IUserRepository
 {
-    private static List<Cliente> _clients = [];
+    private static List<User> _clients = [];
 
-    public Cliente GetById(int id)
+    public User GetById(int id)
     {
         return _clients.FirstOrDefault(client => client.Id == id)
             ?? throw new KeyNotFoundException($"Client with id {id} not found.");
     }
 
-    public List<Cliente> List()
+    public List<User> List()
     {
         return _clients;
     }
 
-    public Cliente Add(Cliente entity)
+    public User Add(User entity)
     {
         _clients.Add(entity);
         return entity;
     }
 
-    public void Update(Cliente entity)
+    public void Update(User entity)
     {
         var index = _clients.FindIndex(client => client.Id == entity.Id);
         if (index >= 0)
@@ -37,7 +37,7 @@ public class ClientRepositoryEF : IClientRepository
         }
     }
 
-    public void Delete(Cliente entity)
+    public void Delete(User entity)
     {
           _clients.RemoveAll(client => client.Id == entity.Id);
     }

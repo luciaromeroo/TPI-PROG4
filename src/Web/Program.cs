@@ -12,7 +12,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddScoped<IClientRepository, ClientRepositoryEF>();
+builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
 
 var app = builder.Build();
 

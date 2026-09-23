@@ -14,19 +14,19 @@ namespace Client.Controllers;
 [Route("[controller]")]
 public class ClientController : ControllerBase
 {
-    private IClientRepository _ClientRepository;
+    private IUserRepository _UserRepository;
 
-        public ClientController(IClientRepository CRepository)
+        public ClientController(IUserRepository CRepository)
     {
-        _ClientRepository = CRepository;
+        _UserRepository = CRepository;
     }
 
     
     [HttpPost]
-    public ActionResult<ClientDto> Post([FromBody] PostClientRequest prPostClientRequest)
+    public ActionResult<UserDto> Post([FromBody] PostUserRequest prPostClientRequest)
     {
 
-        var entity = new Cliente(
+        var entity = new User(
             prPostClientRequest.Id,
             prPostClientRequest.Nombre,
             prPostClientRequest.Apellido,
@@ -35,29 +35,29 @@ public class ClientController : ControllerBase
             prPostClientRequest.Telefono
         );
 
-        var result = _ClientRepository.Add(entity);
+        var result = _UserRepository.Add(entity);
 
-        return ClientDto.Create(result);
+        return UserDto.Create(result);
         
     }
 
     [HttpGet]
-     public ActionResult<List<ClientDto>> Get()
+     public ActionResult<List<UserDto>> Get()
     {
 
        
-        var result =  _ClientRepository.List();
+        var result =  _UserRepository.List();
         
-        return ClientDto.Create(result);
+        return UserDto.Create(result);
         
     }
 
     [HttpGet("{prId}")]
-     public ActionResult<ClientDto> GetById([FromRoute] int prId)
+     public ActionResult<UserDto> GetById([FromRoute] int prId)
     {
-        var result =  _ClientRepository.GetById(prId);
+        var result =  _UserRepository.GetById(prId);
         
-        return ClientDto.Create(result);
+        return UserDto.Create(result);
         
     }
 
