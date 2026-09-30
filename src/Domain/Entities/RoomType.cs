@@ -1,6 +1,6 @@
 namespace Domain;
 
-public enum TipoHabitacion
+public enum RoomType
 {
     Single,
     Double,
