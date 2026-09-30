@@ -1,9 +1,14 @@
+using Domain;
+
 namespace Application.Models;
 
 public record PostUserRequest(
     int Id,
-    string Nombre,
-    string Apellido,
-    string Dni,
+    string Name,
+    string LastName,
     string Mail,
-    string Telefono);
+    string Password,
+    string Dni,
+    string Phone,
+    Role Role
+);

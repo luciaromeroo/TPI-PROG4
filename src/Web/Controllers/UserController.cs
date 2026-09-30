@@ -28,11 +28,13 @@ public class UserController : ControllerBase
 
         var entity = new Domain.User(
             prPostUserRequest.Id,
-            prPostUserRequest.Nombre,
-            prPostUserRequest.Apellido,
-            prPostUserRequest.Dni,
+            prPostUserRequest.Name,
+            prPostUserRequest.LastName,
             prPostUserRequest.Mail,
-            prPostUserRequest.Telefono
+            prPostUserRequest.Password,
+            prPostUserRequest.Dni,
+            prPostUserRequest.Phone,
+            prPostUserRequest.Role
         );
 
         var result = _UserRepository.Add(entity);
