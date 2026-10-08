@@ -27,5 +27,5 @@ public class User
     
     
     // Relación: Un cliente puede tener múltiples reservas
-    // public List<Reserva> Reservas { get; set; } = new();
+       public List<Reservation> Reservations { get; set; } = new();
 }

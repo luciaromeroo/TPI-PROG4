@@ -1,20 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Application.Models;
 using Domain.Interfaces;
-using System.Buffers;
-using Infrastructure.Data;
-using Domain;
 
 
-namespace User.Controllers;
 
 
+
+
+
+[Route("api/users")]
 [ApiController]
-
-[Route("[controller]")]
 public class UserController : ControllerBase
 {
-    private IUserRepository _UserRepository;
+    private readonly IUserRepository _UserRepository;
 
         public UserController(IUserRepository UserRepository)
     {
