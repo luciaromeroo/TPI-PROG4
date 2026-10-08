@@ -2,7 +2,7 @@ namespace Domain;
 
 public enum ReservationState
 {
-    Pendent,
+    Pending,
     Confirmed,
     Canceled
 }

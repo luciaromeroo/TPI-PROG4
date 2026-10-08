@@ -2,15 +2,16 @@ namespace Domain;
 
 public class Reservation
 {
-    public int ReservationCode { get; set; }
+    public int Id { get; set; }
+    public string ReservationCode { get; set; } = string.Empty;
+    public DateTime CreationDate { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public DateTime CreationDate { get; set; }
     public ReservationState Type { get; set; }
+    public decimal TotalAmount { get; set; }
 
-   
-    // private List<ReservaDetalle> _reservaDetalles { get; set; } = new();
-
-    // public IReadOnlyList<ReservaDetalle> ReservaDetalles => _reservaDetalles.AsReadOnly();
-
+    public int UserId { get; set; }
+    public User User { get; set; } = null!;
+    public List<DetailReservation> DetailReservations { get; set; } = new();  // 1..*
+    public List<Payment> Payments { get; set; } = new();                       // 1..*
 }
