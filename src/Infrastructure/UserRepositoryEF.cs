@@ -1,6 +1,6 @@
 ﻿using Domain;
 using Domain.Interfaces;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace Infrastructure.Data;
 
