@@ -11,16 +11,16 @@ public class User
     public string Phone { get; set; } = string.Empty;
     public Role Type { get; set;}
 
-    public User(int id, string name, string lastname, string mail, string password, string dni, string phone, Role role)
+    public User(int id, string name, string lastName, string mail, string password, string dni, string phone, Role type)
     {
         Id = id;
         Name = name;
-        LastName = lastname;
+        LastName = lastName;
         Mail = mail;
         Password = password;
         Dni = dni;
         Phone = phone;
-        Type = role;
+        Type = type;
     }
 
     
