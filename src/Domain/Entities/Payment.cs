@@ -11,4 +11,20 @@ public class Payment
 
     public int ReservationId { get; set; }
     public Reservation Reservation { get; set; } = null!;
+
+    public Payment(int id, int transactionNumber, decimal amount, string paymentMethod, bool paymentState, DateTime paymentDate, int reservationId)
+    {
+        Id = id;
+        TransactionNumber = transactionNumber;
+        Amount = amount;
+        PaymentMethod = paymentMethod;
+        PaymentState = paymentState;
+        PaymentDate = paymentDate;
+        ReservationId = reservationId;
+    }
+
+    public void ConfirmPayment()
+    {
+        PaymentState = true;
+    }
 }
