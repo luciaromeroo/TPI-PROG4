@@ -169,7 +169,7 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("User");
                 });
 
             modelBuilder.Entity("Domain.DetailReservation", b =>

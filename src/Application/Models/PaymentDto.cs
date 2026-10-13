@@ -1,7 +1,8 @@
 using Domain;
 
 namespace Application.Models;
-public record PaymentDtoResponse(
+
+public record PaymentDto(
     int Id,
     int TransactionNumber,
     decimal Amount,
@@ -11,9 +12,9 @@ public record PaymentDtoResponse(
     int ReservationId
 )
 {
-    public static PaymentDtoResponse Create(Payment entity)
+    public static PaymentDto Create(Payment entity)
     {
-        return new PaymentDtoResponse(
+        return new PaymentDto(
             entity.Id,
             entity.TransactionNumber,
             entity.Amount,
@@ -24,8 +25,8 @@ public record PaymentDtoResponse(
         );
     }
 
-    public static List<PaymentDtoResponse> Create(IEnumerable<Payment> entities)
+    public static List<PaymentDto> CreateList(IEnumerable<Payment> entities)
     {
         return entities.Select(Create).ToList();
     }
-} 
+}
