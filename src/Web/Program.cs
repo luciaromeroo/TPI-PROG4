@@ -15,6 +15,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 // Configure the SQLite connection
 var connection = new SqliteConnection("Data Source=hotelDataBase.db");

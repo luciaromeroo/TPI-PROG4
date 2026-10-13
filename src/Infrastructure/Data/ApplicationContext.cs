@@ -21,7 +21,7 @@ namespace Infrastructure.Data
 
             modelBuilder.Entity<User>(user =>
             {
-                user.ToTable("Users");
+                user.ToTable("User");
                 user.HasKey(user => user.Id);
 
                 user.Property(user => user.Id)
