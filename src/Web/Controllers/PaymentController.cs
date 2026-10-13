@@ -1,47 +1,64 @@
-using Microsoft.AspNetCore.Mvc;
+using Application.Interfaces;
 using Application.Models;
-using Domain.Interfaces;
+using Application.Models.Requests;
+using Microsoft.AspNetCore.Mvc;
 
+namespace Web.Controllers;
+
+// Controller delgado: solo traduce HTTP <-> servicio. Los errores los resuelve
+// GlobalExceptionHandlingMiddleware (NotFoundException -> 404, AppValidationException -> 400).
 [Route("api/payments")]
 [ApiController]
 public class PaymentController : ControllerBase
 {
-    private readonly IPaymentRepository _PaymentRepository;
+    private readonly IPaymentService _paymentService;
 
-    public PaymentController(IPaymentRepository PaymentRepository)
+    public PaymentController(IPaymentService paymentService)
     {
-        _PaymentRepository = PaymentRepository;
-    }
-
-    [HttpPost]
-    public ActionResult<PaymentDtoResponse> Post([FromBody] PaymentDtoRequest prPaymentDtoRequest)
-    {
-        var entity = new Domain.Payment(
-            prPaymentDtoRequest.Id,
-            prPaymentDtoRequest.TransactionNumber,
-            prPaymentDtoRequest.Amount,
-            prPaymentDtoRequest.PaymentMethod,
-            prPaymentDtoRequest.PaymentState,
-            prPaymentDtoRequest.PaymentDate,
-            prPaymentDtoRequest.ReservationId
-        );
-
-        var result = _PaymentRepository.Add(entity);
-
-        return PaymentDtoResponse.Create(result);
+        _paymentService = paymentService;
     }
 
     [HttpGet]
-    public ActionResult<List<PaymentDtoResponse>> Get()
+    public ActionResult<List<PaymentDto>> GetAll()
     {
-        var result = _PaymentRepository.List();
-        return PaymentDtoResponse.Create(result);
+        return Ok(_paymentService.GetAllPayments());
     }
 
-    [HttpGet("{prId}")]
-    public ActionResult<PaymentDtoResponse> GetById([FromRoute] int prId)
+    [HttpGet("{id}")]
+    public ActionResult<PaymentDto> GetById([FromRoute] int id)
     {
-        var result = _PaymentRepository.GetById(prId);
-        return PaymentDtoResponse.Create(result);
+        return Ok(_paymentService.GetPaymentById(id));
+    }
+
+    [HttpGet("reservation/{reservationId}")]
+    public ActionResult<List<PaymentDto>> GetByReservation([FromRoute] int reservationId)
+    {
+        return Ok(_paymentService.GetPaymentsByReservation(reservationId));
+    }
+
+    [HttpGet("reservation/{reservationId}/balance")]
+    public ActionResult<ReservationBalanceDto> GetReservationBalance([FromRoute] int reservationId)
+    {
+        return Ok(_paymentService.GetReservationBalance(reservationId));
+    }
+
+    [HttpPost]
+    public ActionResult<PaymentDto> Register([FromBody] CreatePaymentRequest request)
+    {
+        var created = _paymentService.RegisterPayment(request);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPatch("{id}/confirm")]
+    public ActionResult<PaymentDto> Confirm([FromRoute] int id)
+    {
+        return Ok(_paymentService.ConfirmPayment(id));
+    }
+
+    [HttpDelete("{id}")]
+    public IActionResult Delete([FromRoute] int id)
+    {
+        _paymentService.DeletePayment(id);
+        return NoContent();
     }
 }

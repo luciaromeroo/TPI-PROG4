@@ -1,11 +1,8 @@
-using Domain;
-using Domain.Interfaces;
+namespace Domain.Interfaces;
 
-public interface IPaymentRepository
+// Hereda el CRUD del repositorio genérico y agrega solo las consultas propias de Payment.
+public interface IPaymentRepository : IRepository<Payment>
 {
-    Payment GetById(int id);
-    List<Payment> List();
-    Payment Add(Payment entity);
-    void Update(Payment entity);
-    void Delete(Payment entity);
+    IEnumerable<Payment> GetByReservation(int reservationId);
+    int GetLastTransactionNumber();
 }

@@ -2,50 +2,23 @@ using Domain;
 using Domain.Interfaces;
 
 namespace Infrastructure.Data;
-public class PaymentRepository : IPaymentRepository
+
+// GetById, List, Add, Update y Delete vienen de Repository<Payment>.
+// Igual que en el ejemplo, GetById devuelve null si no existe: decidir qué hacer es tarea del servicio.
+public class PaymentRepository : Repository<Payment>, IPaymentRepository
 {
-    private readonly ApplicationContext _context;
+    public PaymentRepository(ApplicationContext context) : base(context) { }
 
-    public PaymentRepository(ApplicationContext context)
+    public IEnumerable<Payment> GetByReservation(int reservationId)
     {
-        _context = context;
+        return _dbSet
+            .Where(payment => payment.ReservationId == reservationId)
+            .OrderBy(payment => payment.PaymentDate)
+            .ToList();
     }
 
-    public Payment GetById(int id)
+    public int GetLastTransactionNumber()
     {
-        return _context.Payments.FirstOrDefault(payment => payment.Id == id)
-            ?? throw new KeyNotFoundException($"Payment with id {id} not found.");
-    }
-
-    public List<Payment> List()
-    {
-        return _context.Payments.ToList();
-    }
-
-    public Payment Add(Payment entity)
-    {
-        _context.Payments.Add(entity);
-        _context.SaveChanges();
-        return entity;
-    }
-
-    public void Update(Payment entity)
-    {
-        if (!_context.Payments.Any(payment => payment.Id == entity.Id))
-        {
-            throw new KeyNotFoundException($"Payment with id {entity.Id} not found.");
-        }
-
-        _context.Payments.Update(entity);
-        _context.SaveChanges();
-    }
-
-    public void Delete(Payment entity)
-    {
-        var payment = _context.Payments.Find(entity.Id)
-            ?? throw new KeyNotFoundException($"Payment with id {entity.Id} not found.");
-
-        _context.Payments.Remove(payment);
-        _context.SaveChanges();
+        return _dbSet.Max(payment => (int?)payment.TransactionNumber) ?? 0;
     }
 }
