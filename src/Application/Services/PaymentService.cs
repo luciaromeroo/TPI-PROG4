@@ -14,14 +14,19 @@ namespace Application.Services;
 // - No se registran ni se confirman pagos de una reserva cancelada.
 // - El pago nace con PaymentState = false y pasa a true solo al confirmarse (acreditarse).
 // - Un pago confirmado no se puede eliminar.
+// - Seña: cuando lo ACREDITADO llega al 50% del TotalAmount, la reserva pendiente pasa a Confirmed
+//   y la habitación queda reservada. Los pagos sin acreditar no cuentan para la seña.
 public class PaymentService : IPaymentService
 {
+    // Porcentaje del total que hay que tener acreditado para que la reserva quede confirmada.
+    private const decimal DepositPercentage = 0.5m;
+
     private readonly IPaymentRepository _paymentRepository;
-    private readonly IRepository<Reservation> _reservationRepository;
+    private readonly IReservationRepository _reservationRepository;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
-        IRepository<Reservation> reservationRepository)
+        IReservationRepository reservationRepository)
     {
         _paymentRepository = paymentRepository;
         _reservationRepository = reservationRepository;
@@ -62,10 +67,13 @@ public class PaymentService : IPaymentService
         decimal confirmed = payments.Where(p => p.PaymentState).Sum(p => p.Amount);
         decimal pending = payments.Where(p => !p.PaymentState).Sum(p => p.Amount);
         decimal remaining = reservation.TotalAmount - confirmed - pending;
+        decimal requiredDeposit = GetRequiredDeposit(reservation);
 
         return new ReservationBalanceDto(
             reservation.Id,
             reservation.TotalAmount,
+            requiredDeposit,
+            confirmed >= requiredDeposit,
             confirmed,
             pending,
             remaining,
@@ -118,10 +126,20 @@ public class PaymentService : IPaymentService
             throw new AppValidationException("CANNOT_CONFIRM_PAYMENT_OF_CANCELED_RESERVATION");
 
         payment.ConfirmPayment();
-        _paymentRepository.Update(payment);
 
-        // PENDIENTE DE DEFINIR CON EL EQUIPO: si la seña o el pago total deben pasar
-        // la reserva a Confirmed, este es el lugar para llamar a reservation.ConfirmReservation().
+        // Seña del 50%: lo acreditado hasta ahora (los otros pagos acreditados + este)
+        // decide si la reserva pendiente queda confirmada.
+        decimal confirmedAmount = _paymentRepository
+            .GetByReservation(reservation.Id)
+            .Where(p => p.PaymentState && p.Id != payment.Id)
+            .Sum(p => p.Amount) + payment.Amount;
+
+        if (reservation.Type == ReservationState.Pending && confirmedAmount >= GetRequiredDeposit(reservation))
+            reservation.ConfirmReservation();
+
+        // Pago y reserva están trackeados por el mismo DbContext: un solo SaveChanges
+        // guarda los dos cambios juntos (nunca queda la seña acreditada con la reserva sin confirmar).
+        _paymentRepository.Update(payment);
 
         return PaymentDto.Create(payment);
     }
@@ -134,6 +152,11 @@ public class PaymentService : IPaymentService
 
         payment.EnsureCanBeDeleted();
         _paymentRepository.Delete(payment);
+    }
+
+    private static decimal GetRequiredDeposit(Reservation reservation)
+    {
+        return Math.Round(reservation.TotalAmount * DepositPercentage, 2);
     }
 
     private Reservation GetExistingReservation(int reservationId)
