@@ -36,10 +36,12 @@ builder.Services.AddDbContext<ApplicationContext>(dbContextOptions => dbContextO
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 #endregion
 
 #region Services
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 #endregion
 
 // Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400, resto -> 500).
