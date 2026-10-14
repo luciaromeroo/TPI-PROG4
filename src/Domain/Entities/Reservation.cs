@@ -2,9 +2,8 @@ using Domain.Exceptions;
 
 namespace Domain;
 
-// Una Reservation es la cabecera de la estadía: rango de fechas, monto total
-// y cliente. Nace en Pending y pasa a Confirmed o Canceled.
-// Los detalles (DetailReservations) y los pagos (Payments) cuelgan de ella.
+// Una reserva es la estadía de un cliente: fechas, monto total y código.
+// Arranca pendiente y después se confirma o se cancela.
 public class Reservation
 {
     public int Id { get; set; }
@@ -20,11 +19,10 @@ public class Reservation
     public List<DetailReservation> DetailReservations { get; set; } = new();  // 1..*
     public List<Payment> Payments { get; set; } = new();                       // 1..*
 
-    // Constructor vacío requerido por Entity Framework.
+    // Lo pide Entity Framework, sin esto no anda.
     public Reservation() { }
 
-    // Constructor de negocio: el Id lo genera la base, la reserva siempre nace
-    // en Pending con la fecha de creación que pone el servidor.
+    // El id lo pone la base, el código lo genera el servicio y la fecha la pone el servidor.
     public Reservation(string reservationCode, DateTime startDate, DateTime endDate, decimal totalAmount, int userId)
     {
         if (string.IsNullOrWhiteSpace(reservationCode))
@@ -45,7 +43,7 @@ public class Reservation
         Type = ReservationState.Pending;
     }
 
-    // Confirma la reserva (por ejemplo, al acreditarse la seña).
+    // Pasa la reserva a confirmada (cuando se acredita la seña, por ejemplo).
     public void ConfirmReservation()
     {
         if (Type == ReservationState.Confirmed)
@@ -57,7 +55,7 @@ public class Reservation
         Type = ReservationState.Confirmed;
     }
 
-    // Cancela la reserva. Una reserva cancelada no acepta pagos ni confirmaciones.
+    // Pasa la reserva a cancelada, después ya no se puede confirmar ni cobrar.
     public void CancelReservation()
     {
         if (Type == ReservationState.Canceled)
