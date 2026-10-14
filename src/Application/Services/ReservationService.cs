@@ -12,11 +12,11 @@ namespace Application.Services;
 public class ReservationService : IReservationService
 {
     private readonly IReservationRepository _reservationRepository;
-    private readonly IRepository<User> _userRepository;
+    private readonly IUserRepository _userRepository;
 
     public ReservationService(
         IReservationRepository reservationRepository,
-        IRepository<User> userRepository)
+        IUserRepository userRepository)
     {
         _reservationRepository = reservationRepository;
         _userRepository = userRepository;
