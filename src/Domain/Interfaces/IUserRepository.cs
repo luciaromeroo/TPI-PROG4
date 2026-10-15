@@ -1,24 +1,8 @@
-using Domain;
-
 namespace Domain.Interfaces;
 
-// Una interfaz define un contrato: indica qué operaciones debe ofrecer un
-// repositorio, pero no explica cómo se implementa cada operación.
-public interface IUserRepository
+// El CRUD (GetById, List, Add, Update, Delete) ya viene del genérico.
+// Acá solo lo propio de usuarios: buscar por mail para no repetirlo.
+public interface IUserRepository : IRepository<User>
 {
-    
-    User GetById(int id);
-
-
-    List<User> List();
-
-  
-    User Add(User entity);
-
-   
-    void Update(User entity);
-
-
-    void Delete(User entity);
+    User? GetByMail(string mail);
 }
-
