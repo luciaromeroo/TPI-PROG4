@@ -1,10 +1,14 @@
+using System.Text;
 using Application.Interfaces;
+using Application.Models;
 using Application.Services;
 using Domain.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Web.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +37,40 @@ using (var command = connection.CreateCommand())
 builder.Services.AddDbContext<ApplicationContext>(dbContextOptions => dbContextOptions.UseSqlite(connection));
 #endregion
 
+#region Authentication (JWT)
+// Configuración del token, sección "Jwt" de appsettings.json.
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
+if (jwtOptions is null || jwtOptions.SecretKey.Length < 32)
+    throw new Exception("La sección 'Jwt' no está configurada en appsettings.json o la SecretKey tiene menos de 32 caracteres");
+
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+
+// Cómo se valida el token que llega en el header Authorization: Bearer <token>.
+// La fecha de vencimiento se valida por defecto.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Deja los claims con el nombre con que se escribieron ("sub", "role"...),
+        // sin traducirlos a los nombres largos de Microsoft.
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+            // Así [Authorize(Roles = "...")] sabe en qué claim buscar el rol.
+            RoleClaimType = AuthClaimTypes.Role,
+            NameClaimType = AuthClaimTypes.Email
+        };
+    });
+
+builder.Services.AddAuthorization();
+#endregion
+
 #region Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
@@ -44,6 +82,8 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 #endregion
 
@@ -68,6 +108,9 @@ app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
+// Primero se averigua QUIÉN es (lee y valida el token)...
+app.UseAuthentication();
+// ...y después si PUEDE entrar al endpoint ([Authorize]).
 app.UseAuthorization();
 
 app.MapControllers();
