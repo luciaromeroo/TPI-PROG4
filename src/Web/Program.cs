@@ -1,17 +1,27 @@
+using System.Text;
 using Application.Interfaces;
+using Application.Models;
 using Application.Services;
 using Domain.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Web.Middlewares;
+using Web.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // Botón "Authorize" en Swagger para probar endpoints con token.
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 
 #region Database
 // La cadena de conexión se lee de appsettings.json (ConnectionStrings:DefaultConnection).
@@ -32,6 +42,40 @@ using (var command = connection.CreateCommand())
 builder.Services.AddDbContext<ApplicationContext>(dbContextOptions => dbContextOptions.UseSqlite(connection));
 #endregion
 
+#region Authentication (JWT)
+// Configuración del token, sección "Jwt" de appsettings.json.
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
+if (jwtOptions is null || jwtOptions.SecretKey.Length < 32)
+    throw new Exception("La sección 'Jwt' no está configurada en appsettings.json o la SecretKey tiene menos de 32 caracteres");
+
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+
+// Cómo se valida el token que llega en el header Authorization: Bearer <token>.
+// La fecha de vencimiento se valida por defecto.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Deja los claims con el nombre con que se escribieron ("sub", "role"...),
+        // sin traducirlos a los nombres largos de Microsoft.
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+            // Así [Authorize(Roles = "...")] sabe en qué claim buscar el rol.
+            RoleClaimType = AuthClaimTypes.Role,
+            NameClaimType = AuthClaimTypes.Email
+        };
+    });
+
+builder.Services.AddAuthorization();
+#endregion
+
 #region Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
@@ -43,12 +87,27 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 #endregion
 
-// Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400, resto -> 500).
+#region Seed
+// Crea el primer SuperAdmin si no existe (datos en appsettings.Development.json, sección "SuperAdminSeed").
+builder.Services.Configure<SuperAdminSeedOptions>(builder.Configuration.GetSection(SuperAdminSeedOptions.SectionName));
+builder.Services.AddScoped<SuperAdminSeeder>();
+#endregion
+
+// Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400,
+// credenciales inválidas -> 401, sin permiso -> 403, resto -> 500).
 builder.Services.AddTransient<GlobalExceptionHandlingMiddleware>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>().Seed();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -65,6 +124,9 @@ app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
+// Primero se averigua QUIÉN es (lee y valida el token)...
+app.UseAuthentication();
+// ...y después si PUEDE entrar al endpoint ([Authorize]).
 app.UseAuthorization();
 
 app.MapControllers();

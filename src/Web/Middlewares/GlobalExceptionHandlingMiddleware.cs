@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Web.Middlewares;
 
 // PIEZA COMPARTIDA: traduce las excepciones de dominio a respuestas HTTP para todo el backend.
-// NotFoundException -> 404, AppValidationException -> 400, cualquier otra -> 500.
+// NotFoundException -> 404, AppValidationException -> 400,
+// InvalidCredentialsException -> 401, NotAllowedException -> 403, cualquier otra -> 500.
 public class GlobalExceptionHandlingMiddleware : IMiddleware
 {
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
@@ -31,6 +32,16 @@ public class GlobalExceptionHandlingMiddleware : IMiddleware
         {
             _logger.LogWarning(ex, ex.Message);
             await WriteProblem(context, HttpStatusCode.BadRequest, "ValidationError", ex.Message);
+        }
+        catch (InvalidCredentialsException ex)
+        {
+            _logger.LogWarning(ex.Message);
+            await WriteProblem(context, HttpStatusCode.Unauthorized, "Unauthorized", ex.Message);
+        }
+        catch (NotAllowedException ex)
+        {
+            _logger.LogWarning(ex.Message);
+            await WriteProblem(context, HttpStatusCode.Forbidden, "Forbidden", ex.Message);
         }
         catch (Exception ex)
         {
