@@ -45,7 +45,8 @@ builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 #endregion
 
-// Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400, resto -> 500).
+// Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400,
+// credenciales inválidas -> 401, sin permiso -> 403, resto -> 500).
 builder.Services.AddTransient<GlobalExceptionHandlingMiddleware>();
 
 var app = builder.Build();
