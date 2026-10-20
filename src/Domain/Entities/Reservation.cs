@@ -23,7 +23,8 @@ public class Reservation
     public Reservation() { }
 
     // El id lo pone la base, el código lo genera el servicio y la fecha la pone el servidor.
-    public Reservation(string reservationCode, DateTime startDate, DateTime endDate, decimal totalAmount, int userId)
+    // El total no entra por acá: lo calcula el sistema con las habitaciones (nunca lo manda el cliente).
+    public Reservation(string reservationCode, DateTime startDate, DateTime endDate, int userId)
     {
         if (string.IsNullOrWhiteSpace(reservationCode))
             throw new AppValidationException("RESERVATION_CODE_REQUIRED");
@@ -31,13 +32,9 @@ public class Reservation
         if (startDate >= endDate)
             throw new AppValidationException("INVALID_RESERVATION_DATES");
 
-        if (totalAmount < 0)
-            throw new AppValidationException("RESERVATION_AMOUNT_CANNOT_BE_NEGATIVE");
-
         ReservationCode = reservationCode.Trim();
         StartDate = startDate;
         EndDate = endDate;
-        TotalAmount = totalAmount;
         UserId = userId;
         CreationDate = DateTime.Now;
         Type = ReservationState.Pending;
@@ -62,5 +59,20 @@ public class Reservation
             throw new AppValidationException("RESERVATION_ALREADY_CANCELED");
 
         Type = ReservationState.Canceled;
+    }
+
+    // Calcula el total con lo que la reserva tiene cargado: las noches por el precio de cada habitación.
+    // Es una invariante de la propia composición (como Confirmar/Cancelar), por eso vive en la entidad.
+    public decimal CalculateTotalAmount()
+    {
+        // La reserva no existe sin por lo menos una habitación (composicion 1..*): sin detalles no hay total.
+        if (DetailReservations.Count == 0)
+            throw new AppValidationException("RESERVATION_MUST_HAVE_ROOMS");
+
+        int nights = (EndDate.Date - StartDate.Date).Days;
+
+        TotalAmount = DetailReservations.Sum(detail => nights * detail.Room.PricePerNight);
+
+        return TotalAmount;
     }
 }
