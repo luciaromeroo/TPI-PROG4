@@ -10,13 +10,18 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Web.Middlewares;
+using Web.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // Botón "Authorize" en Swagger para probar endpoints con token.
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 
 #region Database
 // La cadena de conexión se lee de appsettings.json (ConnectionStrings:DefaultConnection).
