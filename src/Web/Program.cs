@@ -23,6 +23,23 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
 });
 
+#region CORS
+// Permite que el frontend (React, en otro puerto/dominio) llame a la API.
+// Sin esto, el navegador bloquea las requests. La URL se configura en "App:FrontendUrl".
+const string FrontendCorsPolicy = "AllowFrontend";
+var frontendUrl = builder.Configuration["App:FrontendUrl"] ?? "http://localhost:5173";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy.WithOrigins(frontendUrl)
+            .AllowAnyHeader()   // incluye Authorization (el token)
+            .AllowAnyMethod();
+    });
+});
+#endregion
+
 #region Database
 // La cadena de conexión se lee de appsettings.json (ConnectionStrings:DefaultConnection).
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -123,6 +140,9 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
+
+// CORS va antes de la autenticación, para que el navegador pueda hacer la consulta previa (preflight).
+app.UseCors(FrontendCorsPolicy);
 
 // Primero se averigua QUIÉN es (lee y valida el token)...
 app.UseAuthentication();
