@@ -87,11 +87,22 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 #endregion
 
+#region Seed
+// Crea el primer SuperAdmin si no existe (datos en appsettings.Development.json, sección "SuperAdminSeed").
+builder.Services.Configure<SuperAdminSeedOptions>(builder.Configuration.GetSection(SuperAdminSeedOptions.SectionName));
+builder.Services.AddScoped<SuperAdminSeeder>();
+#endregion
+
 // Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400,
 // credenciales inválidas -> 401, sin permiso -> 403, resto -> 500).
 builder.Services.AddTransient<GlobalExceptionHandlingMiddleware>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>().Seed();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
