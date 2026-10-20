@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.Models.Requests;
 
-// Todo opcional porque en el update se manda solo lo que cambia.
+// Solo se pueden cambiar las fechas, y siempre con la reserva pendiente: el monto no se toca
+// porque lo recalcula el sistema. Todo opcional porque en el update se manda solo lo que cambia.
 public class UpdateReservationRequest
 {
     [DataType(DataType.Date, ErrorMessage = "El formato de la fecha de inicio es inválido")]
@@ -10,7 +11,4 @@ public class UpdateReservationRequest
 
     [DataType(DataType.Date, ErrorMessage = "El formato de la fecha de fin es inválido")]
     public DateTime? EndDate { get; set; }
-
-    [Range(0, double.MaxValue, ErrorMessage = "El monto total no puede ser negativo")]
-    public decimal? TotalAmount { get; set; }
 }
