@@ -25,7 +25,7 @@ public record UserDto(
         );
     }
 
-    public static List<UserDto> Create(IEnumerable<User> entities)
+    public static List<UserDto> CreateList(IEnumerable<User> entities)
     {
         return entities.Select(Create).ToList();
     }

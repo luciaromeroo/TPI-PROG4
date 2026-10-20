@@ -42,6 +42,7 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 #region Services
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IUserService, UserService>();
 #endregion
 
 // Middleware global de manejo de excepciones (NotFound -> 404, Validation -> 400, resto -> 500).

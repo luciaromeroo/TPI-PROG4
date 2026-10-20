@@ -1,66 +1,39 @@
-using Microsoft.AspNetCore.Mvc;
+using Application.Interfaces;
 using Application.Models;
-using Domain.Interfaces;
+using Application.Models.Requests;
+using Microsoft.AspNetCore.Mvc;
 
+namespace Web.Controllers;
 
-
-
-
-
-
+// Solo traduce HTTP <-> servicio, acá no hay lógica.
+// Los errores los resuelve el middleware (no encontrado -> 404, validación -> 400).
 [Route("api/users")]
 [ApiController]
 public class UserController : ControllerBase
 {
-    private readonly IUserRepository _UserRepository;
+    private readonly IUserService _userService;
 
-        public UserController(IUserRepository UserRepository)
+    public UserController(IUserService userService)
     {
-        _UserRepository = UserRepository;
-    }
-
-    
-    [HttpPost]
-    public ActionResult<UserDto> Post([FromBody] PostUserRequest prPostUserRequest)
-    {
-
-        var entity = new Domain.User(
-            prPostUserRequest.Id,
-            prPostUserRequest.Name,
-            prPostUserRequest.LastName,
-            prPostUserRequest.Mail,
-            prPostUserRequest.Password,
-            prPostUserRequest.Dni,
-            prPostUserRequest.Phone,
-            prPostUserRequest.Role
-        );
-
-        var result = _UserRepository.Add(entity);
-
-        return UserDto.Create(result);
-        
+        _userService = userService;
     }
 
     [HttpGet]
-     public ActionResult<List<UserDto>> Get()
+    public ActionResult<List<UserDto>> GetAll()
     {
-
-       
-        var result =  _UserRepository.List();
-        
-        return UserDto.Create(result);
-        
+        return Ok(_userService.GetAllUsers());
     }
 
-    [HttpGet("{prId}")]
-     public ActionResult<UserDto> GetById([FromRoute] int prId)
+    [HttpGet("{id}")]
+    public ActionResult<UserDto> GetById([FromRoute] int id)
     {
-        var result =  _UserRepository.GetById(prId);
-        
-        return UserDto.Create(result);
-        
+        return Ok(_userService.GetUserById(id));
     }
 
-
-   
+    [HttpPost]
+    public ActionResult<UserDto> Create([FromBody] CreateUserRequest request)
+    {
+        var created = _userService.CreateUser(request);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
 }
