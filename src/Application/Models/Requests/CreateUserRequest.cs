@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using Domain;
 
 namespace Application.Models.Requests;
 
-// Sin Id: lo genera la base.
+// Registro público (SignUp). Sin Id (lo genera la base) y sin Role:
+// quien se registra solo puede ser Client. Los administradores los crea un SuperAdmin.
 public record CreateUserRequest(
     [Required(ErrorMessage = "El nombre es obligatorio")]
     [StringLength(50, ErrorMessage = "El nombre no debe superar los 50 caracteres")]
@@ -27,8 +27,5 @@ public record CreateUserRequest(
 
     [Required(ErrorMessage = "El teléfono es obligatorio")]
     [StringLength(20, ErrorMessage = "El teléfono no debe superar los 20 caracteres")]
-    string Phone,
-
-    [EnumDataType(typeof(Role), ErrorMessage = "El rol no es válido")]
-    Role Role
+    string Phone
 );
