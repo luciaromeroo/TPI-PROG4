@@ -16,6 +16,8 @@ namespace Application.Services;
 // - Un pago confirmado no se puede eliminar.
 // - Seña: cuando lo ACREDITADO llega al 50% del TotalAmount, la reserva pendiente pasa a Confirmed
 //   y la habitación queda reservada. Los pagos sin acreditar no cuentan para la seña.
+// Permisos: un cliente solo ve y registra pagos de sus propias reservas. Acreditar y
+// eliminar pagos es tarea del staff (lo controla [Authorize] en PaymentController).
 public class PaymentService : IPaymentService
 {
     // Porcentaje del total que hay que tener acreditado para que la reserva quede confirmada.
@@ -40,18 +42,22 @@ public class PaymentService : IPaymentService
     }
 
     // Obtiene un pago por su identificador.
-    public PaymentDto GetPaymentById(int id)
+    public PaymentDto GetPaymentById(int id, CurrentUser currentUser)
     {
         var payment = _paymentRepository.GetById(id)
             ?? throw new NotFoundException("PAYMENT_NOT_FOUND");
+
+        var reservation = GetExistingReservation(payment.ReservationId);
+        currentUser.EnsureCanAccess(reservation.UserId);
 
         return PaymentDto.Create(payment);
     }
 
     // Obtiene los pagos de una reserva.
-    public List<PaymentDto> GetPaymentsByReservation(int reservationId)
+    public List<PaymentDto> GetPaymentsByReservation(int reservationId, CurrentUser currentUser)
     {
-        GetExistingReservation(reservationId);
+        var reservation = GetExistingReservation(reservationId);
+        currentUser.EnsureCanAccess(reservation.UserId);
 
         var payments = _paymentRepository.GetByReservation(reservationId);
         return PaymentDto.CreateList(payments);
@@ -59,9 +65,10 @@ public class PaymentService : IPaymentService
 
     // Estado de cuenta de la reserva: acreditado, pendiente de acreditar y lo que falta registrar.
     // Las sumas se hacen en memoria porque SQLite no puede sumar columnas decimal.
-    public ReservationBalanceDto GetReservationBalance(int reservationId)
+    public ReservationBalanceDto GetReservationBalance(int reservationId, CurrentUser currentUser)
     {
         var reservation = GetExistingReservation(reservationId);
+        currentUser.EnsureCanAccess(reservation.UserId);
         var payments = _paymentRepository.GetByReservation(reservationId).ToList();
 
         decimal confirmed = payments.Where(p => p.PaymentState).Sum(p => p.Amount);
@@ -83,9 +90,10 @@ public class PaymentService : IPaymentService
     }
 
     // Registra un pago parcial (seña, saldo, pago en destino...) para una reserva.
-    public PaymentDto RegisterPayment(CreatePaymentRequest request)
+    public PaymentDto RegisterPayment(CreatePaymentRequest request, CurrentUser currentUser)
     {
         var reservation = GetExistingReservation(request.ReservationId);
+        currentUser.EnsureCanAccess(reservation.UserId);
 
         if (reservation.Type == ReservationState.Canceled)
             throw new AppValidationException("CANNOT_PAY_CANCELED_RESERVATION");

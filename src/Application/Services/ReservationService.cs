@@ -10,6 +10,7 @@ namespace Application.Services;
 // Todo lo de reservas pasa por acá: valida que el cliente exista, que las habitaciones
 // existan, estén habilitadas, libres y con capacidad, y el total lo calcula el sistema.
 // La reserva siempre nace pendiente y se crea junto con sus habitaciones.
+// Permisos: un cliente solo ve y cancela sus propias reservas; el staff, todas.
 public class ReservationService : IReservationService
 {
     private readonly IReservationRepository _reservationRepository;
@@ -34,30 +35,34 @@ public class ReservationService : IReservationService
     }
 
     // Trae una reserva por su id.
-    public ReservationDto GetReservationById(int id)
+    public ReservationDto GetReservationById(int id, CurrentUser currentUser)
     {
         var reservation = _reservationRepository.GetById(id)
             ?? throw new NotFoundException("RESERVATION_NOT_FOUND");
+
+        currentUser.EnsureCanAccess(reservation.UserId);
 
         return ReservationDto.Create(reservation);
     }
 
     // Trae las reservas de un cliente.
-    public List<ReservationDto> GetReservationsByUser(int userId)
+    public List<ReservationDto> GetReservationsByUser(int userId, CurrentUser currentUser)
     {
+        currentUser.EnsureCanAccess(userId);
         GetExistingUser(userId);
 
         var reservations = _reservationRepository.GetByUserId(userId);
         return ReservationDto.CreateList(reservations);
     }
 
-    // Crea la reserva y sus habitaciones en una sola operación. El código lo genera el
-    // servidor, arranca pendiente y el total lo calcula el sistema (nunca lo manda el cliente).
-    public ReservationDto CreateReservation(CreateReservationRequest request)
+    // Crea la reserva y sus habitaciones en una sola operación, a nombre del usuario logueado.
+    // El código lo genera el servidor, arranca pendiente y el total lo calcula el sistema
+    // (nunca lo manda el cliente).
+    public ReservationDto CreateReservation(CreateReservationRequest request, CurrentUser currentUser)
     {
         ValidateReservationDates(request.StartDate, request.EndDate);
 
-        GetExistingUser(request.UserId);
+        GetExistingUser(currentUser.Id);
 
         if (request.Rooms is null || request.Rooms.Count == 0)
             throw new AppValidationException("RESERVATION_MUST_HAVE_ROOMS");
@@ -70,7 +75,7 @@ public class ReservationService : IReservationService
             "RSV-" + Guid.NewGuid().ToString("N")[..6].ToUpper(),
             request.StartDate,
             request.EndDate,
-            request.UserId
+            currentUser.Id
         );
 
         foreach (var roomRequest in request.Rooms)
@@ -155,10 +160,12 @@ public class ReservationService : IReservationService
     }
 
     // Pasa la reserva a cancelada.
-    public ReservationDto CancelReservation(int id)
+    public ReservationDto CancelReservation(int id, CurrentUser currentUser)
     {
         var reservation = _reservationRepository.GetById(id)
             ?? throw new NotFoundException("RESERVATION_NOT_FOUND");
+
+        currentUser.EnsureCanAccess(reservation.UserId);
 
         reservation.CancelReservation();
         _reservationRepository.Update(reservation);
