@@ -19,10 +19,12 @@ namespace Web.Controllers;
 public class ReservationController : ControllerBase
 {
     private readonly IReservationService _reservationService;
+    private readonly IReservationUsdService _reservationUsdService;
 
-    public ReservationController(IReservationService reservationService)
+    public ReservationController(IReservationService reservationService, IReservationUsdService reservationUsdService)
     {
         _reservationService = reservationService;
+        _reservationUsdService = reservationUsdService;
     }
 
     // Monitoreo de todas las reservas: solo staff.
@@ -45,6 +47,14 @@ public class ReservationController : ControllerBase
     public ActionResult<ReservationDto> GetById([FromRoute] int id)
     {
         return Ok(_reservationService.GetReservationById(id, User.ToCurrentUser()));
+    }
+
+    // Total de la reserva convertido a dólares con la cotización del día (API externa DolarApi).
+    // Mismos permisos que ver la reserva: el dueño o el staff.
+    [HttpGet("{id:int}/total-usd")]
+    public async Task<ActionResult<ReservationUsdTotalDto>> GetTotalInUsd([FromRoute] int id)
+    {
+        return Ok(await _reservationUsdService.GetTotalInUsdAsync(id, User.ToCurrentUser()));
     }
 
     [HttpGet("user/{userId:int}")]
