@@ -2,6 +2,8 @@ using Domain;
 
 namespace Application.Models;
 
+// La reserva con sus datos y la lista de habitaciones que tiene adentro (Details),
+// así el cliente ve qué reservó exactamente.
 public record ReservationDto(
     int Id,
     string ReservationCode,
@@ -10,7 +12,8 @@ public record ReservationDto(
     DateTime EndDate,
     ReservationState Type,
     decimal TotalAmount,
-    int UserId
+    int UserId,
+    List<DetailReservationDto> Details
 )
 {
     public static ReservationDto Create(Reservation entity)
@@ -23,7 +26,8 @@ public record ReservationDto(
             entity.EndDate,
             entity.Type,
             entity.TotalAmount,
-            entity.UserId
+            entity.UserId,
+            DetailReservationDto.CreateList(entity.DetailReservations)
         );
     }
 
