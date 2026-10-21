@@ -15,12 +15,12 @@ public class ReservationService : IReservationService
 {
     private readonly IReservationRepository _reservationRepository;
     private readonly IUserRepository _userRepository;
-    private readonly IRepository<Room> _roomRepository;
+    private readonly IRoomRepository _roomRepository;
 
     public ReservationService(
         IReservationRepository reservationRepository,
         IUserRepository userRepository,
-        IRepository<Room> roomRepository)
+        IRoomRepository roomRepository)
     {
         _reservationRepository = reservationRepository;
         _userRepository = userRepository;
