@@ -5,7 +5,8 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Data;
 
-// Datos del primer SuperAdmin. Se leen de appsettings.json, sección "SuperAdminSeed" (mail y contraseña desde variables de entorno).
+// Datos del primer SuperAdmin. Se leen de appsettings.json, sección "SuperAdminSeed" (mail y contraseña desde
+// appsettings.Development.json en local, que no se sube a git, y variables de entorno en Azure).
 public class SuperAdminSeedOptions
 {
     public const string SectionName = "SuperAdminSeed";
