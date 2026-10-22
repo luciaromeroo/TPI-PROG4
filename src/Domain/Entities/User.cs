@@ -3,22 +3,26 @@
 namespace Domain;
 
 // Un usuario del sistema: cliente, administrador o superadmin (Role).
+// Las propiedades tienen "private set": los datos solo se cargan por el constructor de negocio,
+// que los valida.
 public class User
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Mail { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string Dni { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public Role Type { get; set; }
+    private readonly List<Reservation> _reservations = new();
+
+    public int Id { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public string LastName { get; private set; } = string.Empty;
+    public string Mail { get; private set; } = string.Empty;
+    public string Password { get; private set; } = string.Empty;
+    public string Dni { get; private set; } = string.Empty;
+    public string Phone { get; private set; } = string.Empty;
+    public Role Type { get; private set; }
 
     // Relación: un cliente puede tener múltiples reservas.
-    public List<Reservation> Reservations { get; set; } = new();
+    public IReadOnlyCollection<Reservation> Reservations => _reservations;
 
-    // Constructor vacío requerido por Entity Framework.
-    public User() { }
+    // Constructor vacío requerido por Entity Framework (privado: solo lo usa EF al leer de la base).
+    private User() { }
 
     // Constructor de negocio: el Id lo genera la base, por eso no se recibe.
     // No se puede crear un usuario con datos vacíos o con un rol que no existe.
