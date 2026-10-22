@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Data;
 
+// Los métodos de escritura solo marcan los cambios en el DbContext; no los guardan.
+// Quien confirma es el servicio, con IUnitOfWork.SaveChanges(), al terminar el caso de uso.
 public class Repository<T> : IRepository<T> where T : class
 {
     protected readonly ApplicationContext _context;
@@ -27,20 +29,17 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual T Add(T entity)
     {
         _dbSet.Add(entity);
-        _context.SaveChanges();
         return entity;
     }
 
     public virtual T Update(T entity)
     {
         _dbSet.Update(entity);
-        _context.SaveChanges();
         return entity;
     }
 
     public virtual void Delete(T entity)
     {
         _dbSet.Remove(entity);
-        _context.SaveChanges();
     }
 }

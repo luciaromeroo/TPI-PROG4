@@ -18,11 +18,13 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
+    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
+        _unitOfWork = unitOfWork;
     }
 
     // Trae todos los usuarios (solo staff, lo controla el controller).
@@ -75,6 +77,7 @@ public class UserService : IUserService
             throw new AppValidationException("USER_MAIL_ALREADY_EXISTS");
 
         _userRepository.Add(user);
+        _unitOfWork.SaveChanges();   // recién acá se guarda (y la base le asigna el Id)
 
         return UserDto.Create(user);
     }

@@ -16,15 +16,18 @@ public class ReservationService : IReservationService
     private readonly IReservationRepository _reservationRepository;
     private readonly IUserRepository _userRepository;
     private readonly IRoomRepository _roomRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ReservationService(
         IReservationRepository reservationRepository,
         IUserRepository userRepository,
-        IRoomRepository roomRepository)
+        IRoomRepository roomRepository,
+        IUnitOfWork unitOfWork)
     {
         _reservationRepository = reservationRepository;
         _userRepository = userRepository;
         _roomRepository = roomRepository;
+        _unitOfWork = unitOfWork;
     }
 
     // Trae todas las reservas.
@@ -67,10 +70,6 @@ public class ReservationService : IReservationService
         if (request.Rooms is null || request.Rooms.Count == 0)
             throw new AppValidationException("RESERVATION_MUST_HAVE_ROOMS");
 
-        // La misma habitación dos veces en el mismo carrito no tiene sentido.
-        if (request.Rooms.GroupBy(room => room.RoomId).Any(group => group.Count() > 1))
-            throw new AppValidationException("DUPLICATED_ROOM_IN_RESERVATION");
-
         var reservation = new Reservation(
             "RSV-" + Guid.NewGuid().ToString("N")[..6].ToUpper(),
             request.StartDate,
@@ -83,26 +82,18 @@ public class ReservationService : IReservationService
             var room = _roomRepository.GetById(roomRequest.RoomId)
                 ?? throw new NotFoundException("ROOM_NOT_FOUND");
 
-            if (!room.State)
-                throw new AppValidationException("ROOM_OUT_OF_SERVICE");
-
-            if (roomRequest.GuestsNumber < 1 || roomRequest.GuestsNumber > room.Capacity)
-                throw new AppValidationException("GUESTS_EXCEED_ROOM_CAPACITY");
-
+            // Overbooking: mira las otras reservas guardadas, por eso lo controla el servicio.
             if (!_reservationRepository.IsRoomAvailable(room.Id, request.StartDate, request.EndDate))
                 throw new AppValidationException("ROOM_NOT_AVAILABLE_FOR_DATES");
 
-            reservation.DetailReservations.Add(new DetailReservation
-            {
-                GuestsNumber = roomRequest.GuestsNumber,
-                Room = room
-            });
+            // La entidad valida que la habitación esté habilitada, que no esté repetida y la
+            // capacidad, y recalcula el total (regla "Independencia de tarifa").
+            reservation.AddRoom(room, roomRequest.GuestsNumber);
         }
-
-        reservation.CalculateTotalAmount();
 
         // Un solo Add: la reserva le pasa sus detalles por la navegación y EF los inserta juntos.
         _reservationRepository.Add(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -133,16 +124,12 @@ public class ReservationService : IReservationService
                 throw new AppValidationException("ROOM_NOT_AVAILABLE_FOR_DATES");
         }
 
-        reservation.StartDate = startDate;
-        reservation.EndDate = endDate;
-        reservation.CalculateTotalAmount();
-
-        // Si ya se registró algo de plata, el total nuevo no puede quedar por debajo de eso.
-        // Suma en memoria: SQLite no puede sumar columnas decimal.
-        if (reservation.TotalAmount < reservation.Payments.Sum(payment => payment.Amount))
-            throw new AppValidationException("RESERVATION_TOTAL_BELOW_REGISTERED_PAYMENTS");
+        // La entidad valida que siga pendiente, recalcula el total y controla que no quede
+        // por debajo de lo ya pagado.
+        reservation.ChangeDates(startDate, endDate);
 
         _reservationRepository.Update(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -155,6 +142,7 @@ public class ReservationService : IReservationService
 
         reservation.ConfirmReservation();
         _reservationRepository.Update(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -169,6 +157,7 @@ public class ReservationService : IReservationService
 
         reservation.CancelReservation();
         _reservationRepository.Update(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -180,10 +169,10 @@ public class ReservationService : IReservationService
         var reservation = _reservationRepository.GetById(id)
             ?? throw new NotFoundException("RESERVATION_NOT_FOUND");
 
-        if (reservation.Payments.Any())
-            throw new AppValidationException("RESERVATION_HAS_PAYMENTS");
+        reservation.EnsureCanBeDeleted();
 
         _reservationRepository.Delete(reservation);
+        _unitOfWork.SaveChanges();
     }
 
     // Fechas del documento: la estadía empieza hoy o más tarde y termina después de empezar.

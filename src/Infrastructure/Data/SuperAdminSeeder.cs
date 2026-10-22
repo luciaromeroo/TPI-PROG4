@@ -26,15 +26,18 @@ public class SuperAdminSeeder
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly SuperAdminSeedOptions _options;
+    private readonly IUnitOfWork _unitOfWork;
 
     public SuperAdminSeeder(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IOptions<SuperAdminSeedOptions> options)
+        IOptions<SuperAdminSeedOptions> options,
+        IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _options = options.Value;
+        _unitOfWork = unitOfWork;
     }
 
     public void Seed()
@@ -60,5 +63,6 @@ public class SuperAdminSeeder
         );
 
         _userRepository.Add(superAdmin);
+        _unitOfWork.SaveChanges();
     }
 }

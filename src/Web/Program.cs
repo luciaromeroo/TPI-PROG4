@@ -115,6 +115,7 @@ builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 #endregion
 
 #region Services

@@ -4,23 +4,29 @@ namespace Domain;
 
 // Una reserva es la estadía de un cliente: fechas, monto total y código.
 // Arranca pendiente y después se confirma o se cancela.
+// Las propiedades tienen "private set" y las colecciones son de solo lectura: el estado
+// solo cambia por los métodos de negocio (AddRoom, ChangeDates, ConfirmReservation,
+// CancelReservation), que son los que validan las reglas.
 public class Reservation
 {
-    public int Id { get; set; }
-    public string ReservationCode { get; set; } = string.Empty;
-    public DateTime CreationDate { get; set; }
-    public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
-    public ReservationState Type { get; set; }
-    public decimal TotalAmount { get; set; }
+    private readonly List<DetailReservation> _detailReservations = new();
+    private readonly List<Payment> _payments = new();
 
-    public int UserId { get; set; }
-    public User User { get; set; } = null!;
-    public List<DetailReservation> DetailReservations { get; set; } = new();  // 1..*
-    public List<Payment> Payments { get; set; } = new();                       // 1..*
+    public int Id { get; private set; }
+    public string ReservationCode { get; private set; } = string.Empty;
+    public DateTime CreationDate { get; private set; }
+    public DateTime StartDate { get; private set; }
+    public DateTime EndDate { get; private set; }
+    public ReservationState Type { get; private set; }
+    public decimal TotalAmount { get; private set; }
 
-    // Lo pide Entity Framework, sin esto no anda.
-    public Reservation() { }
+    public int UserId { get; private set; }
+    public User User { get; private set; } = null!;
+    public IReadOnlyCollection<DetailReservation> DetailReservations => _detailReservations;  // 1..*
+    public IReadOnlyCollection<Payment> Payments => _payments;                                // 1..*
+
+    // Lo pide Entity Framework (privado: solo lo usa EF al leer de la base).
+    private Reservation() { }
 
     // El id lo pone la base, el código lo genera el servicio y la fecha la pone el servidor.
     // El total no entra por acá: lo calcula el sistema con las habitaciones (nunca lo manda el cliente).
@@ -38,6 +44,47 @@ public class Reservation
         UserId = userId;
         CreationDate = DateTime.Now;
         Type = ReservationState.Pending;
+    }
+
+    // Agrega una habitación a la reserva y recalcula el total.
+    // La disponibilidad en las fechas (overbooking) la controla el servicio con el repositorio,
+    // porque necesita mirar las otras reservas guardadas en la base.
+    public void AddRoom(Room room, int guestsNumber)
+    {
+        if (Type != ReservationState.Pending)
+            throw new AppValidationException("RESERVATION_NOT_EDITABLE");
+
+        if (!room.State)
+            throw new AppValidationException("ROOM_OUT_OF_SERVICE");
+
+        if (_detailReservations.Any(detail => detail.RoomId == room.Id))
+            throw new AppValidationException("DUPLICATED_ROOM_IN_RESERVATION");
+
+        // El constructor del detalle valida la capacidad.
+        _detailReservations.Add(new DetailReservation(room, guestsNumber));
+
+        TotalAmount = CalculateTotal(StartDate, EndDate);
+    }
+
+    // Cambia las fechas de una reserva pendiente y recalcula el total.
+    // El total nuevo no puede quedar por debajo de lo que ya se registró en pagos.
+    public void ChangeDates(DateTime startDate, DateTime endDate)
+    {
+        if (Type != ReservationState.Pending)
+            throw new AppValidationException("RESERVATION_NOT_EDITABLE");
+
+        if (startDate >= endDate)
+            throw new AppValidationException("INVALID_RESERVATION_DATES");
+
+        decimal newTotal = CalculateTotal(startDate, endDate);
+
+        // Suma en memoria: SQLite no puede sumar columnas decimal.
+        if (newTotal < _payments.Sum(payment => payment.Amount))
+            throw new AppValidationException("RESERVATION_TOTAL_BELOW_REGISTERED_PAYMENTS");
+
+        StartDate = startDate;
+        EndDate = endDate;
+        TotalAmount = newTotal;
     }
 
     // Pasa la reserva a confirmada (cuando se acredita la seña, por ejemplo).
@@ -61,18 +108,23 @@ public class Reservation
         Type = ReservationState.Canceled;
     }
 
-    // Calcula el total con lo que la reserva tiene cargado: las noches por el precio de cada habitación.
-    // Es una invariante de la propia composición (como Confirmar/Cancelar), por eso vive en la entidad.
-    public decimal CalculateTotalAmount()
+    // Con pagos registrados la reserva es historial contable: se cancela, no se borra.
+    public void EnsureCanBeDeleted()
     {
-        // La reserva no existe sin por lo menos una habitación (composicion 1..*): sin detalles no hay total.
-        if (DetailReservations.Count == 0)
+        if (_payments.Any())
+            throw new AppValidationException("RESERVATION_HAS_PAYMENTS");
+    }
+
+    // Regla "Independencia de tarifa": noches x precio por noche de cada habitación,
+    // sin importar la cantidad de huéspedes.
+    private decimal CalculateTotal(DateTime startDate, DateTime endDate)
+    {
+        // La reserva no existe sin por lo menos una habitación (composición 1..*): sin detalles no hay total.
+        if (_detailReservations.Count == 0)
             throw new AppValidationException("RESERVATION_MUST_HAVE_ROOMS");
 
-        int nights = (EndDate.Date - StartDate.Date).Days;
+        int nights = (endDate.Date - startDate.Date).Days;
 
-        TotalAmount = DetailReservations.Sum(detail => nights * detail.Room.PricePerNight);
-
-        return TotalAmount;
+        return _detailReservations.Sum(detail => nights * detail.Room.PricePerNight);
     }
 }
