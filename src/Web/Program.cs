@@ -131,8 +131,8 @@ builder.Services.AddScoped<IReservationUsdService, ReservationUsdService>();
 #endregion
 
 #region Seed
-// Crea el primer SuperAdmin si no existe (sección "SuperAdminSeed": datos en appsettings.Development.json,
-// mail y contraseña en el archivo .env).
+// Crea el primer SuperAdmin si no existe (sección "SuperAdminSeed": datos en appsettings.json,
+// mail y contraseña en variables de entorno, el archivo .env en local).
 builder.Services.Configure<SuperAdminSeedOptions>(builder.Configuration.GetSection(SuperAdminSeedOptions.SectionName));
 builder.Services.AddScoped<SuperAdminSeeder>();
 #endregion
@@ -145,18 +145,20 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    // Crea la base y aplica las migraciones pendientes al arrancar.
+    // En Azure nadie corre "dotnet ef database update", así que lo hace la API sola.
+    scope.ServiceProvider.GetRequiredService<ApplicationContext>().Database.Migrate();
+
     scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>().Seed();
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Swagger habilitado también fuera de Development, para poder probar la API publicada en Azure.
+app.MapOpenApi();
+app.UseSwaggerUI(options =>
 {
-    app.MapOpenApi();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/openapi/v1.json", "My API V1");
-    });
-}
+    options.SwaggerEndpoint("/openapi/v1.json", "My API V1");
+});
 
 // Va primero para capturar las excepciones de todo lo que viene después.
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
