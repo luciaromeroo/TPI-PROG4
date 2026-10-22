@@ -98,6 +98,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 #endregion
 
+#region HttpClient Factory (servicios externos)
+// Cliente con nombre para DolarApi: la dirección base se configura una sola vez acá
+// y DolarApiService lo pide con CreateClient("dolarApiHttpClient").
+builder.Services.AddHttpClient(
+    "dolarApiHttpClient",
+    client =>
+    {
+        client.BaseAddress = new Uri("https://dolarapi.com/v1/");
+    });
+#endregion
+
 #region Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepositoryEF>();
@@ -114,6 +125,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IDolarApiService, DolarApiService>();
+builder.Services.AddScoped<IReservationUsdService, ReservationUsdService>();
 #endregion
 
 #region Seed
