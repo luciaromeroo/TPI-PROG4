@@ -16,15 +16,18 @@ public class ReservationService : IReservationService
     private readonly IReservationRepository _reservationRepository;
     private readonly IUserRepository _userRepository;
     private readonly IRoomRepository _roomRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ReservationService(
         IReservationRepository reservationRepository,
         IUserRepository userRepository,
-        IRoomRepository roomRepository)
+        IRoomRepository roomRepository,
+        IUnitOfWork unitOfWork)
     {
         _reservationRepository = reservationRepository;
         _userRepository = userRepository;
         _roomRepository = roomRepository;
+        _unitOfWork = unitOfWork;
     }
 
     // Trae todas las reservas.
@@ -103,6 +106,7 @@ public class ReservationService : IReservationService
 
         // Un solo Add: la reserva le pasa sus detalles por la navegación y EF los inserta juntos.
         _reservationRepository.Add(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -143,6 +147,7 @@ public class ReservationService : IReservationService
             throw new AppValidationException("RESERVATION_TOTAL_BELOW_REGISTERED_PAYMENTS");
 
         _reservationRepository.Update(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -155,6 +160,7 @@ public class ReservationService : IReservationService
 
         reservation.ConfirmReservation();
         _reservationRepository.Update(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -169,6 +175,7 @@ public class ReservationService : IReservationService
 
         reservation.CancelReservation();
         _reservationRepository.Update(reservation);
+        _unitOfWork.SaveChanges();
 
         return ReservationDto.Create(reservation);
     }
@@ -184,6 +191,7 @@ public class ReservationService : IReservationService
             throw new AppValidationException("RESERVATION_HAS_PAYMENTS");
 
         _reservationRepository.Delete(reservation);
+        _unitOfWork.SaveChanges();
     }
 
     // Fechas del documento: la estadía empieza hoy o más tarde y termina después de empezar.

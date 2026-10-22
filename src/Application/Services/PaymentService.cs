@@ -25,13 +25,16 @@ public class PaymentService : IPaymentService
 
     private readonly IPaymentRepository _paymentRepository;
     private readonly IReservationRepository _reservationRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
-        IReservationRepository reservationRepository)
+        IReservationRepository reservationRepository,
+        IUnitOfWork unitOfWork)
     {
         _paymentRepository = paymentRepository;
         _reservationRepository = reservationRepository;
+        _unitOfWork = unitOfWork;
     }
 
     // Obtiene todos los pagos registrados.
@@ -118,6 +121,7 @@ public class PaymentService : IPaymentService
         );
 
         _paymentRepository.Add(payment);
+        _unitOfWork.SaveChanges();
 
         return PaymentDto.Create(payment);
     }
@@ -145,9 +149,12 @@ public class PaymentService : IPaymentService
         if (reservation.Type == ReservationState.Pending && confirmedAmount >= GetRequiredDeposit(reservation))
             reservation.ConfirmReservation();
 
-        // Pago y reserva están trackeados por el mismo DbContext: un solo SaveChanges
-        // guarda los dos cambios juntos (nunca queda la seña acreditada con la reserva sin confirmar).
         _paymentRepository.Update(payment);
+        _reservationRepository.Update(reservation);
+
+        // Límite de la transacción: el pago acreditado y la reserva confirmada se guardan juntos,
+        // en un único SaveChanges. Nunca queda la seña acreditada con la reserva sin confirmar.
+        _unitOfWork.SaveChanges();
 
         return PaymentDto.Create(payment);
     }
@@ -160,6 +167,7 @@ public class PaymentService : IPaymentService
 
         payment.EnsureCanBeDeleted();
         _paymentRepository.Delete(payment);
+        _unitOfWork.SaveChanges();
     }
 
     private static decimal GetRequiredDeposit(Reservation reservation)

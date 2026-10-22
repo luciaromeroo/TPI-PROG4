@@ -10,10 +10,12 @@ namespace Application.Services;
 public class RoomService : IRoomService
 {
     private readonly IRoomRepository _roomRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public RoomService(IRoomRepository roomRepository)
+    public RoomService(IRoomRepository roomRepository, IUnitOfWork unitOfWork)
     {
         _roomRepository = roomRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public List<RoomDto> GetAllRooms()
@@ -52,6 +54,7 @@ public class RoomService : IRoomService
         };
 
         _roomRepository.Add(room);
+        _unitOfWork.SaveChanges();
         return RoomDto.Create(room);
     }
 
@@ -72,6 +75,7 @@ public class RoomService : IRoomService
         room.Capacity = request.Capacity;
 
         _roomRepository.Update(room);
+        _unitOfWork.SaveChanges();
         return RoomDto.Create(room);
     }
 
@@ -84,6 +88,7 @@ public class RoomService : IRoomService
             throw new AppValidationException("ROOM_HAS_RESERVATION_HISTORY");
 
         _roomRepository.Delete(room);
+        _unitOfWork.SaveChanges();
     }
 
     private void EnsureRoomNumberIsAvailable(int number, int? excludeRoomId = null)
