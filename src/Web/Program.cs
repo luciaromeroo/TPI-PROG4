@@ -12,11 +12,6 @@ using Microsoft.IdentityModel.Tokens;
 using Web.Middlewares;
 using Web.OpenApi;
 
-// Carga las variables del archivo .env (secretos que NO se suben a git) como variables de entorno.
-// Tiene que ir antes de CreateBuilder para que la configuración las lea.
-// En el .env, "Jwt__SecretKey" equivale a la clave "Jwt:SecretKey" de appsettings.json.
-DotNetEnv.Env.TraversePath().Load();
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -68,7 +63,7 @@ builder.Services.AddDbContext<ApplicationContext>(dbContextOptions => dbContextO
 // Configuración del token, sección "Jwt" de appsettings.json.
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
 if (jwtOptions is null || jwtOptions.SecretKey.Length < 32)
-    throw new Exception("Falta configurar el JWT: revisá la sección 'Jwt' de appsettings.json y Jwt__SecretKey en el archivo .env (mínimo 32 caracteres)");
+    throw new Exception("Falta configurar el JWT: revisá Jwt:SecretKey en appsettings.Development.json (local) o la variable de entorno Jwt__SecretKey (Azure), mínimo 32 caracteres");
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
@@ -132,7 +127,7 @@ builder.Services.AddScoped<IReservationUsdService, ReservationUsdService>();
 
 #region Seed
 // Crea el primer SuperAdmin si no existe (sección "SuperAdminSeed": datos en appsettings.json,
-// mail y contraseña en variables de entorno, el archivo .env en local).
+// mail y contraseña en appsettings.Development.json en local (no se sube a git) y variables de entorno en Azure).
 builder.Services.Configure<SuperAdminSeedOptions>(builder.Configuration.GetSection(SuperAdminSeedOptions.SectionName));
 builder.Services.AddScoped<SuperAdminSeeder>();
 #endregion
