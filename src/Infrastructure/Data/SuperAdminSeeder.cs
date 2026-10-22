@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Data;
 
-// Datos del primer SuperAdmin. Se leen de appsettings.Development.json, sección "SuperAdminSeed".
+// Datos del primer SuperAdmin. Se leen de appsettings.json, sección "SuperAdminSeed" (mail y contraseña desde variables de entorno).
 public class SuperAdminSeedOptions
 {
     public const string SectionName = "SuperAdminSeed";
@@ -42,7 +42,7 @@ public class SuperAdminSeeder
 
     public void Seed()
     {
-        // Sin configuración no se crea nada (por ejemplo, fuera de Development).
+        // Sin mail o contraseña configurados no se crea nada.
         if (string.IsNullOrWhiteSpace(_options.Mail) || string.IsNullOrWhiteSpace(_options.Password))
             return;
 
